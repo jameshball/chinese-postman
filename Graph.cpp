@@ -2,7 +2,7 @@
 
 Graph::Graph(int n, list< pair<int, int> > & edges):
 	n(n),
-	m(edges.size()),
+	m(static_cast<int>(edges.size())),
 	adjMat(n * n),
 	adjList(n),
 	edges(),
