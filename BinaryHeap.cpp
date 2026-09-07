@@ -71,10 +71,17 @@ int BinaryHeap::DeleteMin()
 	return min;
 }
 
-void BinaryHeap::ChangeKey(double k, int s)
-{
-	Remove(s);
-	Insert(k, s);
+void BinaryHeap::ChangeKey(double k, int s) {
+    if (k >= key[s]) { Remove(s); Insert(k, s); return; }
+    int i = pos[s];
+    while (i / 2 > 0 && GREATER(key[satellite[i / 2]], k)) {
+        satellite[i] = satellite[i / 2];
+        pos[satellite[i]] = i;
+        i /= 2;
+    }
+    satellite[i] = s;
+    pos[s] = i;
+    key[s] = k;
 }
 
 void BinaryHeap::Remove(int s)

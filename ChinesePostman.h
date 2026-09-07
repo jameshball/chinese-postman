@@ -1,3 +1,4 @@
+#include "ParallelWork.h"
 #include "Dijkstra.h"
 #include "./Matching.h"
 #include "./Graph.h"
@@ -5,7 +6,7 @@
 bool Connected(Graph & G)
 {
     vector<bool> visited(G.GetNumVertices(), false);
-    list<int> L;
+    vector<int> L;
     
     int n = 0;
     L.push_back(0);
@@ -32,8 +33,7 @@ returns a pair containing a list and a double
 the list is the sequence of vertices in the solution
 the double is the solution cost
 */
-pair< list<int>, double > ChinesePostman(Graph& G, vector<double>& cost)
-{
+pair< list<int>, double > ChinesePostman(Graph& G, vector<double>& cost, ParallelWork& work) {
 	//Check if the graph if connected
 	if(not Connected(G))
 		throw "Error: Graph is not connected";
@@ -53,27 +53,27 @@ pair< list<int>, double > ChinesePostman(Graph& G, vector<double>& cost)
 	if(not odd.empty())
 	{
 		//Create a graph with the odd degree vertices
-		auto edges = list<pair<int, int>>();
-		Graph O(odd.size(), edges);
-		for(int u = 0; u < (int)odd.size(); u++)
-			for(int v = u+1; v < (int)odd.size(); v++)
-				O.AddEdge(u, v);
+        Graph O(odd.size());
 
         vector<double> costO(O.GetNumEdges());
         
+        vector<vector<pair<int, double>>> adjacency(G.GetNumVertices());
+        for (int u = 0; u < G.GetNumVertices(); ++u) {
+            adjacency[u].reserve(G.AdjList(u).size());
+            for (int v : G.AdjList(u)) {
+                adjacency[u].emplace_back(v, cost.empty() ? 1.0 : cost[G.GetEdgeIndex(u, v)]);
+            }
+        }
         //Find the shortest paths between all odd degree vertices
 		vector< vector<int> > shortestPath(O.GetNumVertices());
-		for(int u = 0; u < (int)odd.size(); u++)
-		{
-			pair< vector<int>, vector<double> > sp = Dijkstra(G, odd[u], cost);
-			
-			shortestPath[u] = sp.first ;
-			
-			//The cost of an edge uv in O will be the cost of the corresponding shortest path in G
-			for(int v = 0; v < (int)odd.size(); v++)
-			    if(v != u)
-    			    costO[ O.GetEdgeIndex(u, v) ] = sp.second[odd[v]];
-		}
+        work.forEach(odd.size(), [&](size_t u) {
+            auto sp = Dijkstra(adjacency, odd[u]);
+            shortestPath[u] = std::move(sp.first);
+            // One writer per edge, preserving the final distance used by the serial loop.
+            for (size_t v = 0; v < u; ++v) {
+                costO[O.GetEdgeIndex(u, v)] = sp.second[odd[v]];
+            }
+        }, adjacency.size() * odd.size() >= 65536);
 
 	    //Find the minimum cost perfect matching of the graph of the odd degree vertices
 	    Matching M(O);

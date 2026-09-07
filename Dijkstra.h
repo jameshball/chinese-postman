@@ -10,11 +10,10 @@ using namespace std;
 //Returns a pair (vector<int>, vector<double>)
 //vector<double> gives the cost of the optimal path to each vertex
 //vector<int> gives the parent of each vertex in the tree of optimal paths
-pair< vector<int>, vector<double> > Dijkstra(Graph & G, int origin, vector<double> & cost)
-{
+pair< vector<int>, vector<double> > Dijkstra(const vector<vector<pair<int, double>>>& adjacency, int origin) {
 	BinaryHeap B;
 
-	int n = G.GetNumVertices();
+	int n = adjacency.size();
 
 	//Father of each vertex in the optimal path tree
 	vector<int> father(n, -1);
@@ -36,12 +35,12 @@ pair< vector<int>, vector<double> > Dijkstra(Graph & G, int origin, vector<doubl
 		permanent[u] = true;
 
 		//Update the heap with vertices adjacent to u
-		for (int v : G.AdjList(u)) {
+		for (auto [v, weight] : adjacency[u]) {
 			
 			if(permanent[v])
 				continue;
 
-			double c = pathCost[u] + (cost.empty() ? 1.0 : cost[G.GetEdgeIndex(u,v)]);
+			double c = pathCost[u] + weight;
 
 			//v has not been discovered yet
 			if(father[v] == -1)
@@ -63,7 +62,7 @@ pair< vector<int>, vector<double> > Dijkstra(Graph & G, int origin, vector<doubl
 	if(B.Size() > 0)
 		throw "Error: graph is not connected";
 
-	return make_pair(father, pathCost);
+	return make_pair(std::move(father), std::move(pathCost));
 }
 
 
