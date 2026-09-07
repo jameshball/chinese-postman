@@ -53,7 +53,7 @@ pair< list<int>, double > ChinesePostman(Graph& G, vector<double>& cost, Paralle
 	if(not odd.empty())
 	{
 		//Create a graph with the odd degree vertices
-        Graph O(odd.size());
+        Graph O(static_cast<int>(odd.size()));
 
         vector<double> costO(O.GetNumEdges());
         
